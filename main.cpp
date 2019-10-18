@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 using namespace std;
-typedef struct node node,* pnode;
+typedef struct node node,*pnode;
 struct node {
     pnode s;
     pnode b;
@@ -59,7 +59,7 @@ bool add(pnode* t, int val, queue <char> *path) {
 }
 void remove(pnode* t) {
     while((*t) -> s != NULL){
-        delete(&((*t) -> s));
+        remove(&((*t) -> s));
     }
     pnode tmp = *t;
     *t = (*t) -> b;
@@ -79,40 +79,71 @@ void tree_print(pnode t, int depth) {
 }
 
 int main() {
-   // int fd1[2], fd2[2], temp_fork, cnt = 0;
+    int fd1[2], fd2[2];
+    int pr;
+    pr = fork();
     pnode test = NULL;
     queue <char> *path = new queue <char>;
-    /*if (pipe(fd1) == -1 || pipe(fd2) == -1) {
+    if (pipe(fd1) == -1 || pipe(fd2) == -1) {
         printf("Can\'t create pipe\n");
         exit(0);
-    }*/
-    char cmd[40];
-    while (scanf("%s", cmd)) {
-        if (strcmp(cmd,"add") == 0) {
-            char tmp_path[40];
-            scanf("%s", tmp_path);
-            if (tmp_path != nullptr) {
-                for (int i = 0; i < 40; i++) {
-                    if (tmp_path[i] == 's' || tmp_path[i] == 'b') {
-                        path->push(tmp_path[i]);
-                    } else if (tmp_path[i] == '\0') {
-                        break;
+    }
+    if (pr == -1) {
+        printf("can't create process\n");
+    } else if (pr > 0) {
+        close(fd1[0]);
+        close(fd2[1]);
+        int depth = 0;
+        char cmd[40];
+        while (scanf("%s", cmd)) {
+            if (strcmp(cmd,"add") == 0) {
+                char tmp_path[40];
+                scanf("%s", tmp_path);
+                if (tmp_path != NULL) {
+                    for (int i = 0; i < 40; i++) {
+                        if (tmp_path[i] == 's' || tmp_path[i] == 'b') {
+                            path->push(tmp_path[i]);
+                        } else if (tmp_path[i] == '\0') {
+                            break;
+                        } else {
+                            printf("wrong path\n");
+                            exit;
+                        }
+                    }
+                    int value;
+                    scanf("%d", &value);
+                    write(fd1[1], &value, sizeof(int));
+                    if (test == NULL) {
+                        test = node_create(value);
+                        path->pop();
                     } else {
-                        std::cout << "wrong path\n" << std::endl;
-                        exit;
+                        add(&test, value, path); //
+                        depth++;
                     }
                 }
-                int value;
-                scanf("%d", &value);
-                add(&test, value, path);
-                tree_print(test, 3);
+            } else if (strcmp(cmd, "remove") == 0) {
+                char tmp_path[40];
+                scanf("%s", tmp_path);
+                if (tmp_path != NULL) {
+                    for (int i = 0; i < 40; i++) {
+                        if (tmp_path[i] == 's' || tmp_path[i] == 'b') {
+                            path->push(tmp_path[i]);
+                        } else if (tmp_path[i] == '\0') {
+                            break;
+                        } else {
+                            printf("wrong path\n");
+                            exit;
+                        }
+                    }
+                } else {
+                    printf("error\n");
+                    break;
+                }
+                remove(search(&test, path)); //
+            } else if (strcmp(cmd, "print") == 0) {
+                tree_print(test, depth); //
             }
-
-        } else {
-            printf("hi\n");
         }
     }
-    tree_print(test, 3);
-
     return 0;
 }
