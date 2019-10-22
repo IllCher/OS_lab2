@@ -80,106 +80,104 @@ void tree_print(pnode t, int depth) {
 pnode test = NULL;
 queue <char> *path = new queue <char>;
 int main() {
+    int depth = 0;
+    char cmd[100];
+    char cm[4];
+    char tmp_path[31];
+    char numb[11] = {'0'};
+    cmd[99] = '\0';
+    cm[3] = '\0';
+    //int value = -1;
     int fd1[2], fd2[2];
-    int pr;
-    pr = fork();
+    pid_t pr;
     if (pipe(fd1) == -1 || pipe(fd2) == -1) {
-        printf("Can\'t create pipe\n");
+        perror("pipe\n");
         exit(0);
     }
+    pr = fork();
     if (pr < 0) {
-        printf("can't create process\n");
+        write(1, "Can't create process\n", 22);
     } else if (pr > 0) {
-        close(fd1[0]);
-        close(fd2[1]);
-        int depth = 0;
-        char cmd[41];
-        while(read(fd1[1], cmd, 1)) {
-            char cm[4];
-            for (int i = 0; i < 3; i++) {
-                printf("%c", cmd[0] );
-                cm[i] = cmd[i];
-            }
-            int i = 4;
+        while(read(0, cmd, 100)) {
+            close(fd1[0]);
+            close(fd2[1]);
             int j = 0;
-            char tmp_path[31];
-            while(cmd[i] != ' ') {
+            int i = 0;
+            while (cmd[i] != ' ') {
+                cm[j] = cmd[i];
+                i++;
+                j++;
+            }
+            j = 0;
+            i++;
+            while (cmd[i] != ' ' && cmd[i] != '\n') {
                 tmp_path[j] = cmd[i];
                 i++;
                 j++;
             }
-            int k = i + 1;
-            j = 0;
-            char numb[5];
-            while (cmd[k] != '\0') {
-                numb[j] = cmd[k];
+            tmp_path[j] = '\0';
+            if (cmd[i] == ' ') {
+                i++;
+                j = 0;
+                while (cmd[i] != '\n' && cmd[i] != '\0') {
+                    numb[j] = cmd[i];
+                    j++;
+                    i++;
+                }
             }
             if (strcmp(cm,"add") == 0) {
-                //read(fd1[0], tmp_path, 31*sizeof(char));
-                //scanf("%s", tmp_path);
                 for (int i = 0; i < 31; i++) {
                     if (tmp_path[i] == 's' || tmp_path[i] == 'b') {
                         path->push(tmp_path[i]);
                     } else if (tmp_path[i] == '\0') {
                         break;
                     } else {
-                        printf("wrong path\n");
-                        exit(0);
+                        write(1, "wrong path\n", 12);
+                        exit(1);
                     }
-                    int value = stoi(numb);
-                    //write(fd1[1], &value, sizeof(int));
-                    /*if (test == NULL) {
-                        test = node_create(value);
-                        path->pop();
-                    } else {
-                        add(&test, value, path);
-                        depth++;
-                    }*/
                 }
-            } else if (strcmp(cmd, "rmv") == 0) {
+            } else if (strcmp(cm, "rmv") == 0) {
                 for (int i = 0; i < 31; i++) {
                     if (tmp_path[i] == 's' || tmp_path[i] == 'b') {
                         path->push(tmp_path[i]);
                     } else if (tmp_path[i] == '\0') {
                         break;
                     } else {
-                        printf("wrong path\n");
-                        exit(0);
+                        write(1, "wrong path\n", 12);
+                        exit(1);
                     }
                 }
+            } else {
+                write(1, "wrong command\n", 50);
+                exit(1);
             }
 
         }
-        close(fd1[0]);
-        close(fd2[1]);
     } else {
-        char cm[4];
-        int value;
-        char tmp_path[31];
-        int depth = 0;
-        //char cmd[41];
-        close(fd1[0]);
-        close(fd2[1]);
-        while (read(fd2[0], cm, 4)) {
-            if (strcmp(cm, "add")) {
-                close(fd1[1]);
-                close(fd2[0]);
-                write(fd2[1], test, sizeof(pnode));
-                write(fd2[1], path, path->size());
-                write(fd2[1], &value, sizeof(int));
-                write(fd2[1], tmp_path, 31);
-                close(fd1[0]);
-                close(fd2[1]);
-                add(&test, value, path);
-                depth++;
+        while ((read(fd1[0], cm, 4) > 0) && (read(fd1[0], path, path->size()) > 0) && (read(fd1[0], numb, strlen(numb))) > 0) {
+            close(fd1[1]);
+            close(fd2[0]);
+            if (strcmp(cm, "add") == 0) {
+                int value = stoi(numb);
+                if (test == NULL) {
+                    test = node_create(value);
+                    path->pop();
+                } else {
+                    add(&test, value, path);
+                    depth++;
+                }
+            } else if (strcmp(cm, "rmv") == 0) {
+                if (test == NULL) {
+                    write(fd2[1], "empty tree\n", 11);
+                } else {
+                    remove(search(&test, path));
+                }
+            } else if (strcmp(cm, "prt") == 0) {
+                write(fd2[1], "fine?\n", 11);
+                tree_print(test, 99);
             }
         }
-        //while (read(fd1[0], cmd, 41*sizeof(char))) {
 
-        //}
-
-        close(fd1[0]);
-        close(fd1[1]);
     }
     return 0;
 }
