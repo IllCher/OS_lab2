@@ -151,6 +151,7 @@ int main() {
                 write(1, "wrong command\n", 50);
                 exit(1);
             }
+            write(fd1[1], numb, sizeof(numb));
             write(fd1[1], cm, 4);
             write(fd1[1], path, q_size(path));
         }
