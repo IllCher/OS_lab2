@@ -66,20 +66,26 @@ void rmv(pnode* t) {
 }
 
 void tree_print(pnode t, int depth) {
+    write(1, "a", 1);
     if (t) {
         for (int i = 0; i < depth; ++i) {
+            //printf("\t");
             write(1, "\t", 1);
         }
         //write(1, &t->val, sizeof(int));
-        //printf("%d",t -> val);
+        //printf("a\n");
+        //printf("%d\n",t -> val);
         write(1, "a", 1);
         write(1, "\n", 1);
         tree_print(t -> s, depth + 1);
         tree_print(t -> b, depth);
     }
 }
+
 int main() {
     //signal(SIGPIPE, SIG_IGN);
+
+    setvbuf(stdout, (char*)NULL, _IONBF, 0);
     pnode test = NULL;
     queue *path = q_create();
     int depth = 0;
@@ -89,18 +95,20 @@ int main() {
     char numb[11] = {'\0'};
     int fd1[2];
     int fd2[2];
-    pid_t pr;
+    pid_t pr = -1;
     if (pipe(fd1) == -1 || pipe(fd2) == -1) {
         perror("pipe\n");
-        exit(0);
+        exit(1);
     }
+
     pr = fork();
     if (pr < 0) {
         write(1, "Can't create process\n", 22);
     } else if (pr > 0) {
+        close(fd1[0]);
+        close(fd2[1]);
         while(read(0, cmd, 100)) {
-            close(fd1[0]);
-            close(fd2[1]);
+            //printf("%s\n", cmd);
             int j = 0;
             int i = 0;
             while (cmd[i] != ' ' && cmd[i] != '\n') {
@@ -147,27 +155,35 @@ int main() {
                         exit(1);
                     }
                 }
+            } else if (strcmp(cm, "prt") == 0){
+
             } else {
                 write(1, "wrong command\n", 50);
                 exit(1);
             }
-            write(fd1[1], numb, sizeof(numb));
-            write(fd1[1], cm, 4);
-            write(fd1[1], path, q_size(path));
+            int red = 0;
+            red  = write(fd1[1], cm, 4);
+            red = write(fd1[1], path->body, 32);
+            red = write(fd1[1], numb, sizeof(numb));
         }
     } else {
         close(fd1[1]);
         close(fd2[0]);
-        while ((read(fd1[0], cm, 4) > 0) && (read(fd1[0], path, q_size(path)) > 0) && (read(fd1[0], numb, strlen(numb))) > 0) {
-            //close(fd1[1]);
-            //close(fd2[0]);
-            ///write(fd2[1], "shit\n", 5);
+        while (1) {
+            //write(1, "shit\n", 5);
+            int red = -1;
+            red = read(fd1[0], cm, 4);
+            printf("%s\n", cm);
+            red = read(fd1[0], path->body, 32);
+            printf("%s\n", path->body);
+            red = read(fd1[0], numb, sizeof(numb));
+            printf("%s\n", numb);
+
             if (strcmp(cm, "add") == 0) {
                 int value = atoi(numb);
                 if (test == NULL) {
                     test = node_create(value);
                     pop(path);
-                    //path->pop();
                 } else {
                     add(&test, value, path);
                     depth++;
