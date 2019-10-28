@@ -69,10 +69,12 @@ void remove(pnode* t) {
 void tree_print(pnode t, int depth) {
     if (t) {
         for (int i = 0; i < depth; ++i) {
-            printf("\t");
+            write(1, "\t", 1);
         }
-        printf("%d",t -> val);
-        printf("\n");
+        //write(1, &t->val, sizeof(int));
+        //printf("%d",t -> val);
+        write(1, "a", 1);
+        write(1, "\n", 1);
         tree_print(t -> s, depth + 1);
         tree_print(t -> b, depth);
     }
@@ -80,14 +82,12 @@ void tree_print(pnode t, int depth) {
 pnode test = NULL;
 queue <char> *path = new queue <char>;
 int main() {
+    //signal(SIGPIPE, SIG_IGN);
     int depth = 0;
-    char cmd[100];
-    char cm[4];
-    char tmp_path[31];
-    char numb[11] = {'0'};
-    cmd[99] = '\0';
-    cm[3] = '\0';
-    //int value = -1;
+    char cmd[100] = {'\0'};
+    char cm[4] = {'\0'};
+    char tmp_path[31] = {'\0'};
+    char numb[11] = {'\0'};
     int fd1[2], fd2[2];
     pid_t pr;
     if (pipe(fd1) == -1 || pipe(fd2) == -1) {
@@ -103,7 +103,7 @@ int main() {
             close(fd2[1]);
             int j = 0;
             int i = 0;
-            while (cmd[i] != ' ') {
+            while (cmd[i] != ' ' && cmd[i] != '\n') {
                 cm[j] = cmd[i];
                 i++;
                 j++;
@@ -125,6 +125,10 @@ int main() {
                     i++;
                 }
             }
+            if ( write(fd1[1], cm, 4) < 0 )
+                perror( "write" );
+           // if (write(fd1[1], numb, strlen(numb)) < 0)
+               // perror( "write" );
             if (strcmp(cm,"add") == 0) {
                 for (int i = 0; i < 31; i++) {
                     if (tmp_path[i] == 's' || tmp_path[i] == 'b') {
@@ -147,16 +151,19 @@ int main() {
                         exit(1);
                     }
                 }
+            } else if (strcmp(cm, "prt") == 0) {
             } else {
                 write(1, "wrong command\n", 50);
                 exit(1);
             }
-
+            cm[3] = '\0';
+            write(fd1[1], path, path->size());
         }
     } else {
         while ((read(fd1[0], cm, 4) > 0) && (read(fd1[0], path, path->size()) > 0) && (read(fd1[0], numb, strlen(numb))) > 0) {
             close(fd1[1]);
             close(fd2[0]);
+            ///write(fd2[1], "shit\n", 5);
             if (strcmp(cm, "add") == 0) {
                 int value = stoi(numb);
                 if (test == NULL) {
@@ -166,6 +173,7 @@ int main() {
                     add(&test, value, path);
                     depth++;
                 }
+                write(fd2[1], "\0", sizeof("\0"));
             } else if (strcmp(cm, "rmv") == 0) {
                 if (test == NULL) {
                     write(fd2[1], "empty tree\n", 11);
