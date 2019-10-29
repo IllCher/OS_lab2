@@ -66,17 +66,17 @@ void rmv(pnode* t) {
 }
 
 void tree_print(pnode t, int depth) {
-    write(1, "a", 1);
+    //write(1, "a", 1);
     if (t) {
         for (int i = 0; i < depth; ++i) {
-            //printf("\t");
-            write(1, "\t", 1);
+            printf("\t");
+            //write(1, "\t", 1);
         }
         //write(1, &t->val, sizeof(int));
         //printf("a\n");
-        //printf("%d\n",t -> val);
-        write(1, "a", 1);
-        write(1, "\n", 1);
+        printf("%d\n",t -> val);
+        //write(1, "a", 1);
+        //write(1, "\n", 1);
         tree_print(t -> s, depth + 1);
         tree_print(t -> b, depth);
     }
@@ -196,8 +196,8 @@ int main() {
                     rmv(search(&test, path));
                 }
             } else if (strcmp(cm, "prt") == 0) {
-                write(fd2[1], "fine?\n", 11);
-                tree_print(test, 99);
+                //write(fd2[1], "fine?\n", 11);
+                tree_print(test, 5);
             } else {
                 write(fd2[1], "bad command\n", 12);
             }
