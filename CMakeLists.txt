@@ -3,4 +3,4 @@ project(OS_lab2)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(OS_lab2 main.cpp)
+add_executable(OS_lab2 main.c c_queue.h c_queue.c)
