@@ -19,6 +19,7 @@ struct node {
     pnode s;
     pnode b;
     int val;
+    bool is_root;
 };
 pnode node_create(int val) {
     pnode new_node = (pnode)malloc(sizeof(node));
@@ -26,6 +27,7 @@ pnode node_create(int val) {
         new_node -> val = val;
         new_node -> s = NULL;
         new_node -> b = NULL;
+        new_node -> is_root = false;
     }
     return new_node;
 }
@@ -70,15 +72,11 @@ void rmv(pnode* t) {
     *t = (*t) -> b;
     free(tmp);
 }
-
 bool valid_numb(char* numb) {
     if (numb == NULL) {
         return false;
     }
     bool flag = true;
-    if (numb[0] == '\0') {
-        return false;
-    }
     int i = 0;
     if (numb[i] != '-' && !(numb[i] >= '0' && numb[i] <= '9')) {
         flag = false;
@@ -144,6 +142,9 @@ ans* parser(char* cmd) {
                 parsed->cmd = -1;
                 break;
             }
+        } else if (strcmp(pch, "ext") == 0) {
+            parsed->cmd = 3;
+            break;
         } else {
             parsed->cmd = -777;
             break;
@@ -164,7 +165,6 @@ void tree_print(pnode t, int depth) {
             i++;
         }
         write(1, numb, i);
-        //printf("%d", t->val);
         write(1,"\n", 1);
         tree_print(t -> s, depth + 1);
         tree_print(t -> b, depth);
@@ -175,7 +175,6 @@ int main() {
     pnode test = NULL;
     char cmd[100] = {'\0'};
     ans *parsed = (ans *) malloc(sizeof(ans));
-    int error_code = 0;
     int fd1[2];
     pid_t pr = -1;
     if (pipe(fd1) == -1) {
@@ -192,6 +191,12 @@ int main() {
             write(fd1[1], &parsed->cmd, 4);
             write(fd1[1], &parsed->val, 4);
             write(fd1[1], parsed->path, 32);
+            if (parsed->cmd == 3) {
+                return 0;
+            }
+            for (int i = 0; i < 100; i++) {
+                cmd[i] = '\0';
+            }
         }
     } else {
         while (1) {
@@ -208,25 +213,32 @@ int main() {
             if (q_size(q) == 0) {
                 push(q, '\0');
             }
-            if (parsed->cmd == 2) {
+            if (parsed->cmd == 3) {
+                return 0;
+            } else if (parsed->cmd == 2) {
                 if (test == NULL) {
                     while (q_size(q) != 0) {
                         pop(q);
                     }
                     test = node_create(parsed->val);
+                    test->is_root = true;
                 } else {
                     add(&test, parsed->val, q);
                 }
             } else if (parsed->cmd == 1) {
                 if (test == NULL) {
                     write(1, "empty tree\n", 11);
+                } else if (test->is_root) {
+                    rmv(&test);
                 } else {
                     rmv(search(&test, q));
                 }
             } else if (parsed->cmd == 0) {
                 if (test == NULL) {
                     write(1, "empty tree\n", 11);
-                } else { tree_print(test, 0); }
+                } else {
+                    tree_print(test, 0);
+                }
             } else if (parsed->cmd == -2){
                 write(1, "invalid value\n", 14);
             } else if (parsed->cmd == -1) {
@@ -234,6 +246,7 @@ int main() {
             } else if (parsed->cmd == -777) {
                 write(1, "invalid command\n", 16);
             }
+            q_destroy(q);
         }
     }
     return 0;
