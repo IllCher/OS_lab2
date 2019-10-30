@@ -10,9 +10,9 @@
 #include <math.h>
 typedef struct ans ans;
 struct ans {
-    char cm[4];
+    int cmd;
+    int val;
     char path[32];
-    char val[11];
 };
 typedef struct node node,*pnode;
 struct node {
@@ -71,42 +71,16 @@ void rmv(pnode* t) {
     free(tmp);
 }
 
-ans* parser(char* cmd) {
-    ans* parsed = (ans*)malloc(sizeof(ans));
-    for (int i = 0; i < 11; i++) {
-        parsed->val[i] = '\0';
+bool valid_numb(char* numb) {
+    if (numb == NULL) {
+        return false;
     }
-    int j = 0;
-    int i = 0;
-    while (cmd[i] != ' ' && cmd[i] != '\n') {
-        parsed->cm[j] = cmd[i];
-        i++;
-        j++;
-    }
-    j = 0;
-    i++;
-    while (cmd[i] != ' ' && cmd[i] != '\n') {
-        parsed->path[j] = cmd[i];
-        i++;
-        j++;
-    }
-    parsed->path[j] = '\0';
-    if (cmd[i] == ' ') {
-        i++;
-        j = 0;
-        while (cmd[i] != '\n' && cmd[i] != '\0') {
-            parsed->val[j] = cmd[i];
-            j++;
-            i++;
-        }
-    }
-    return  parsed;
-}
-bool valid_numb(char numb[11]) {
     bool flag = true;
+    if (numb[0] == '\0') {
+        return false;
+    }
     int i = 0;
     if (numb[i] != '-' && !(numb[i] >= '0' && numb[i] <= '9')) {
-        write(1, "wrong value\n", 12);
         flag = false;
     }
     i++;
@@ -122,7 +96,10 @@ bool valid_numb(char numb[11]) {
     }
     return flag;
 }
-bool valid_path(char path[32]) {
+bool valid_path(char* path) {
+    if (path == NULL) {
+        return false;
+    }
     for (int i = 0; i < 32; i++) {
         if (path[i] == '\0') {
             break;
@@ -132,6 +109,49 @@ bool valid_path(char path[32]) {
     }
     return true;
 }
+
+ans* parser(char* cmd) {
+    ans* parsed = (ans*)malloc(sizeof(ans));
+    char* pch = strtok(cmd," \n");
+    while (pch != NULL) {
+        if (strcmp(pch, "prt") == 0) {
+            parsed->cmd = 0;
+            break;
+        } else if (strcmp(pch, "rmv") == 0) {
+            pch = strtok(NULL, " \n");
+            if (valid_path(pch)) {
+                parsed->cmd = 1;
+                strcpy(parsed->path, pch);
+                break;
+            } else {
+                parsed->cmd = -1;
+                break;
+            }
+        } else if (strcmp(pch, "add") == 0) {
+            pch = strtok(NULL, " \n");
+            if (valid_path(pch)) {
+                strcpy(parsed->path, pch);
+                pch = strtok(NULL, " \n");
+                if (valid_numb(pch)) {
+                    parsed->cmd = 2;
+                    parsed->val = atoi(pch);
+                    break;
+                } else {
+                    parsed->cmd = -2;
+                    break;
+                }
+            } else {
+                parsed->cmd = -1;
+                break;
+            }
+        } else {
+            parsed->cmd = -777;
+            break;
+        }
+    }
+    return parsed;
+}
+
 void tree_print(pnode t, int depth) {
     if (t) {
         for (int i = 0; i < depth; i++) {
@@ -144,22 +164,21 @@ void tree_print(pnode t, int depth) {
             i++;
         }
         write(1, numb, i);
+        //printf("%d", t->val);
         write(1,"\n", 1);
         tree_print(t -> s, depth + 1);
         tree_print(t -> b, depth);
     }
 }
 int main() {
-    setvbuf(stdout, (char*)NULL, _IONBF, 0);
+    setvbuf(stdout, (char *) NULL, _IONBF, 0);
     pnode test = NULL;
     char cmd[100] = {'\0'};
-    ans* parsed = (ans*)malloc(sizeof(ans));
+    ans *parsed = (ans *) malloc(sizeof(ans));
     int error_code = 0;
     int fd1[2];
-    int fd2[2];
-    printf("%d\n",sizeof(ans));
     pid_t pr = -1;
-    if (pipe(fd1) == -1 || pipe(fd2) == -1) {
+    if (pipe(fd1) == -1) {
         perror("pipe\n");
         exit(1);
     }
@@ -168,97 +187,52 @@ int main() {
         write(1, "Can't create process\n", 22);
     } else if (pr > 0) {
         close(fd1[0]);
-        close (fd2[0]);
-        while(read(0, cmd, 100)) {
-        parsed = parser(cmd);
-            if (strcmp(parsed->cm,"add") == 0) {
-                if (!valid_path(parsed->path)) {
-                    error_code = 1;
-                    write(fd2[1], &error_code, 4);
-                    write(1, "wrong path\n", 13);
-                }
-                if (!valid_numb(parsed->val)) {
-                    error_code = 1;
-                    write(fd2[1], &error_code, 4);
-                    write(2, "wrong value\n", 13);
-                }
-            } else if (strcmp(parsed->cm, "rmv") == 0) {
-                if (!valid_path(parsed->path)) {
-                    error_code = 3;
-                    write(1, "wrong path\n", 13);
-                    write(fd2[1], &error_code, 4);
-                }
-            } else if (strcmp(parsed->cm, "prt") == 0){
-                for (int i = 0; i < 11; i++) {
-                    parsed->val[i] = '\0';
-                }
-                for (int i = 0; i < 32; i++) {
-                    parsed->path[i] = '\0';
-                }
-            }
-            else {
-                write(1, "wrong command\n", 14);
-                error_code = 4;
-                write(fd2[1], &error_code, 4);
-            }
-            if (error_code == 0) {
-                write(fd1[1], parsed->cm, 4);
-                write(fd1[1], parsed->val, 11);
-                write(fd1[1], parsed->path, 32);
-                write(fd2[1], &error_code, 4);
-            }
+        while (read(0, cmd, 100)) {
+            parsed = parser(cmd);
+            write(fd1[1], &parsed->cmd, 4);
+            write(fd1[1], &parsed->val, 4);
+            write(fd1[1], parsed->path, 32);
         }
     } else {
         while (1) {
             close(fd1[1]);
-            close(fd2[1]);
-            read(fd1[0], parsed->cm, 4);
-            read(fd1[0], parsed->val, 11);
+            read(fd1[0], &parsed->cmd, 4);
+            read(fd1[0], &parsed->val, 4);
             read(fd1[0], parsed->path, 32);
-            read(fd2[0], &error_code, 4);
-            if (error_code == 0) {
-                queue *q = q_create();
-                int k = 0;
-                while (parsed->path[k] != '\0') {
-                    push(q, parsed->path[k]);
-                    k++;
-                }
-                if (q_size(q) == 0) {
-                    //printf("1\n");
-                    push(q, '\0');
-                }
-                if (strcmp(parsed->cm, "add") == 0) {
-                    int value = atoi(parsed->val);
-                    if (test == NULL) {
-                        while (q_size(q) != 0) {
-                            pop(q);
-                        }
-                        test = node_create(value);
-                    } else {
-                        if(add(&test, value, q)) {
-                        } else {
-                            write(1, "can't add an element\n", 21);
-                        }
+            queue *q = q_create();
+            int k = 0;
+            while (parsed->path[k] != '\0') {
+                push(q, parsed->path[k]);
+                k++;
+            }
+            if (q_size(q) == 0) {
+                push(q, '\0');
+            }
+            if (parsed->cmd == 2) {
+                if (test == NULL) {
+                    while (q_size(q) != 0) {
+                        pop(q);
                     }
-                } else if (strcmp(parsed->cm, "rmv") == 0) {
-                    if (test == NULL) {
-                        write(1, "empty tree rmv\n", 15);
-                    } else {
-                        rmv(search(&test, q));
-                    }
-                } else if (strcmp(parsed->cm, "prt") == 0) {
-                    if (test == NULL) {
-                        write(1, "empty tree prt\n", 15);
-                        exit(error_code);
-                    } else {tree_print(test, 0);}
+                    test = node_create(parsed->val);
                 } else {
-                    //write(1, "wtf?\n", 5);
-                    //break;
-                    exit(1);
+                    add(&test, parsed->val, q);
                 }
-            } else {
-                printf("%d\n", error_code);
-                exit(1);
+            } else if (parsed->cmd == 1) {
+                if (test == NULL) {
+                    write(1, "empty tree\n", 11);
+                } else {
+                    rmv(search(&test, q));
+                }
+            } else if (parsed->cmd == 0) {
+                if (test == NULL) {
+                    write(1, "empty tree\n", 11);
+                } else { tree_print(test, 0); }
+            } else if (parsed->cmd == -2){
+                write(1, "invalid value\n", 14);
+            } else if (parsed->cmd == -1) {
+                write(1, "invalid path\n", 13);
+            } else if (parsed->cmd == -777) {
+                write(1, "invalid command\n", 16);
             }
         }
     }
