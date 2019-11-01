@@ -107,7 +107,6 @@ bool valid_path(char* path) {
     }
     return true;
 }
-
 ans* parser(char* cmd) {
     ans* parsed = (ans*)malloc(sizeof(ans));
     char* pch = strtok(cmd," \n");
@@ -159,7 +158,6 @@ ans* parser(char* cmd) {
     }
     return parsed;
 }
-
 void tree_print(pnode t, int depth) {
     if (t) {
         for (int i = 0; i < depth; i++) {
@@ -233,12 +231,14 @@ int main() {
                     add(&test, parsed->val, q);
                 }
             } else if (parsed->cmd == 1) {
+                pnode* f = search(&test, q);
                 if (test == NULL) {
                     write(1, "empty tree\n", 11);
-                } else if (test->is_root) {
-                    rmv(&test);
+                } else if ((*f) == NULL) {
+                        write(1, "its root\n", 9);
+                        rmv(&test);
                 } else {
-                    rmv(search(&test, q));
+                        rmv(f);
                 }
             } else if (parsed->cmd == 0) {
                 if (test == NULL) {
@@ -246,7 +246,7 @@ int main() {
                 } else {
                     tree_print(test, 0);
                 }
-            } else if (parsed->cmd == -2) {
+            } else if (parsed->cmd == -2){
                 write(1, "invalid value\n", 14);
             } else if (parsed->cmd == -1) {
                 write(1, "invalid path\n", 13);
