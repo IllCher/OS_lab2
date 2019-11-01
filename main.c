@@ -95,6 +95,9 @@ bool valid_path(char* path) {
     if (path == NULL) {
         return false;
     }
+    if (path[0] == '@' && path[1] == '\0') {
+        return true;
+    }
     for (int i = 0; i < 32; i++) {
         if (path[i] == '\0') {
             break;
@@ -117,6 +120,9 @@ ans* parser(char* cmd) {
             if (valid_path(pch)) {
                 parsed->cmd = 1;
                 strcpy(parsed->path, pch);
+                if (parsed->path[0] == 'b') {
+                    parsed->cmd = -1;
+                }
                 break;
             } else {
                 parsed->cmd = -1;
@@ -127,6 +133,10 @@ ans* parser(char* cmd) {
             if (valid_path(pch)) {
                 strcpy(parsed->path, pch);
                 pch = strtok(NULL, " \n");
+                if (parsed->path[0] == 'b') {
+                    parsed->cmd = -1;
+                    break;
+                }
                 if (valid_numb(pch)) {
                     parsed->cmd = 2;
                     parsed->val = atoi(pch);
@@ -236,7 +246,7 @@ int main() {
                 } else {
                     tree_print(test, 0);
                 }
-            } else if (parsed->cmd == -2){
+            } else if (parsed->cmd == -2) {
                 write(1, "invalid value\n", 14);
             } else if (parsed->cmd == -1) {
                 write(1, "invalid path\n", 13);
